@@ -32,11 +32,13 @@ InferCreationAttributes<User>
   declare profileImage: CreationOptional<string>
   declare totpSecret: CreationOptional<string>
   declare isActive: CreationOptional<boolean>
+  declare failedLoginAttempts: CreationOptional<number> 
+  declare lockoutUntil: CreationOptional<Date | null> 
 }
 
-const UserModelInit = (sequelize: Sequelize) => { // vuln-code-snippet start weakPasswordChallenge
+const UserModelInit = (sequelize: Sequelize) => {
   User.init(
-    { // vuln-code-snippet hide-start
+    {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -70,13 +72,13 @@ const UserModelInit = (sequelize: Sequelize) => { // vuln-code-snippet start wea
           }
           this.setDataValue('email', email)
         }
-      }, // vuln-code-snippet hide-end
+      },
       password: {
         type: DataTypes.STRING,
         set (clearTextPassword: string) {
-          this.setDataValue('password', security.hash(clearTextPassword)) // vuln-code-snippet vuln-line weakPasswordChallenge
+          this.setDataValue('password', security.hash(clearTextPassword))
         }
-      }, // vuln-code-snippet end weakPasswordChallenge
+      },
       role: {
         type: DataTypes.STRING,
         defaultValue: 'customer',
@@ -117,6 +119,15 @@ const UserModelInit = (sequelize: Sequelize) => { // vuln-code-snippet start wea
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+      },
+      failedLoginAttempts: {
+        type: DataTypes.INTEGER, 
+        defaultValue: 0,
+        allowNull: false
+      },
+      lockoutUntil: {
+        type: DataTypes.DATE, 
+        allowNull: true
       }
     },
     {
