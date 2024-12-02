@@ -12,25 +12,27 @@ const security = require('../lib/insecurity')
 const cache = require('../data/datacache')
 const challenges = cache.challenges
 
+const MIN_PASSWORD_LENGTH = 8
+const MAX_PASSWORD_LENGTH = 64
+
 module.exports = function updateUserProfile () {
   return (req: Request, res: Response, next: NextFunction) => {
     const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
+    const newPassword = req.body.newPassword
+
+    // Password length validation
+    if (newPassword && (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > MAX_PASSWORD_LENGTH)) {
+      return res.status(400).send({ error: 'Password must be between 8 and 64 characters long.' })
+    }
 
     if (loggedInUser) {
       UserModel.findByPk(loggedInUser.data.id).then((user: UserModel | null) => {
         if (user != null) {
-          challengeUtils.solveIf(challenges.csrfChallenge, () => {
-            return ((req.headers.origin?.includes('://htmledit.squarefree.com')) ??
-              (req.headers.referer?.includes('://htmledit.squarefree.com'))) &&
-              req.body.username !== user.username
-          })
-          void user.update({ username: req.body.username }).then((savedUser: UserModel) => {
-            // @ts-expect-error FIXME some properties missing in savedUser
-            savedUser = utils.queryResultToJson(savedUser)
+          // Update user details (username and optionally other fields)
+          user.update({ username: req.body.username }).then((savedUser: UserModel) => {
             const updatedToken = security.authorize(savedUser)
             security.authenticatedUsers.put(updatedToken, savedUser)
             res.cookie('token', updatedToken)
-            res.location(process.env.BASE_PATH + '/profile')
             res.redirect(process.env.BASE_PATH + '/profile')
           })
         }

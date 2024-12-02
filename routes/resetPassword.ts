@@ -14,14 +14,23 @@ import challengeUtils = require('../lib/challengeUtils')
 const users = require('../data/datacache').users
 const security = require('../lib/insecurity')
 
+const MIN_PASSWORD_LENGTH = 8
+const MAX_PASSWORD_LENGTH = 64
+
 module.exports = function resetPassword () {
-  return ({ body, connection }: Request, res: Response, next: NextFunction) => {
+  return ({ body }: Request, res: Response, next: NextFunction) => {
     const email = body.email
     const answer = body.answer
     const newPassword = body.new
     const repeatPassword = body.repeat
+
+    // Password length validation
+    if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > MAX_PASSWORD_LENGTH) {
+      return res.status(400).send({ error: 'Password must be between 8 and 64 characters long.' })
+    }
+
     if (!email || !answer) {
-      next(new Error('Blocked illegal activity by ' + connection.remoteAddress))
+      next(new Error('Blocked illegal activity'))
     } else if (!newPassword || newPassword === 'undefined') {
       res.status(401).send(res.__('Password cannot be empty.'))
     } else if (newPassword !== repeatPassword) {
